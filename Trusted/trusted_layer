@@ -1,0 +1,67 @@
+# Load libraries
+import numpy as np
+import pandas as pd
+from datetime import datetime
+
+# Loading the Data
+world = pd.read_excel('World Energy Balances Highlights 2024.xlsx', sheet_name='TimeSeries_1971-2023', header=1)
+
+bitcoin = pd.read_excel('Bitcoin_Energy.xlsx')
+
+etherium = pd.read_csv('Historical Ethereum network annualised electricity consumption (PoS).csv')
+
+# Transforming the datasets
+world = world[(world.Country == 'World') & (world.Product == 'Total') & (world.Flow == 'Total final consumption (PJ)')].iloc[:,6:world.shape[1]-1]
+
+world = world.T
+
+world.reset_index(inplace=True)
+
+world.columns = ['Year','Consumption']
+
+# Converting the Energy Consumption from PJ to TWh to annalyze the data in the same base of Crypto Minning and Data Centre Energy Consumption
+world['Consumption'] = pd.to_numeric(world['Consumption']) * 0.27778
+
+# Converting the column Date and Time of Bitcoin and Etherium to date
+bitcoin['Date and Time'] = pd.to_datetime(bitcoin['Date and Time'], errors='coerce')
+
+etherium['Date and Time'] = pd.to_datetime(etherium['Date and Time'], errors='coerce')
+
+# Conveting Etherium Consumption from GWh to TWh
+etherium.iloc[:,4:] =  etherium.iloc[:,4:]/1000
+
+etherium.columns = etherium.columns.str.split(',').str[0]
+
+bitcoin.columns = etherium.columns.str.split(',').str[0]
+
+# Merging both crypto datasets
+crypto = pd.merge(bitcoin[['Date and Time','annualised consumption MAX']], etherium[['Date and Time','annualised consumption GUESS']], on= 'Date and Time',how='left')
+
+# Summarising data by year
+crypto_year = crypto.groupby(crypto['Date and Time'].dt.year)[['annualised consumption MAX','annualised consumption GUESS']].mean().reset_index()
+
+crypto_year.fillna(0, inplace=True)
+
+crypto_year['Consumption'] = crypto_year['annualised consumption MAX'] + crypto_year['annualised consumption GUESS']
+
+crypto_year.drop(columns=['annualised consumption MAX','annualised consumption GUESS'], inplace=True)
+
+crypto_year = crypto_year.rename(columns={'Date and Time':'Year'})
+
+# Creating the dataframe of Data Center Energy consumption with data provided by IEA
+datacenter = pd.DataFrame({'Year':list(range(2014,2025)), 'Consumption':[194, 191, 195, 195, 198, 192, 269, 300, 330, 361, 416]})
+
+# Merging Crypto and Data Centers in a single dataframe
+crypto_datacenter = pd.merge(crypto_year, datacenter, on='Year', how='inner')
+
+crypto_datacenter['Total Consumption'] = crypto_datacenter['Consumption_x'] +  crypto_datacenter['Consumption_y']
+
+crypto_datacenter.drop(columns=['Consumption_x', 'Consumption_y'], inplace=True)
+
+crypto_datacenter.to_csv('Trusted/crypto_ai_energy.csv')
+
+world.to_csv('Trusted/world_energy.csv')
+
+total = pd.concat([world, {'Bitcoin':bitcoin[['Date and Time','annualised consumption MAX']]}, {'Etherium':etherium[['Date and Time','annualised consumption GUESS']]}, datacenter], axis=1)
+
+total.to_csv('Trusted/total_energy_consumption.csv')
