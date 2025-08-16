@@ -4,11 +4,11 @@ import pandas as pd
 from datetime import datetime
 
 # Loading the Data
-world = pd.read_excel('World Energy Balances Highlights 2024.xlsx', sheet_name='TimeSeries_1971-2023', header=1)
+world = pd.read_excel('Raw/World Energy Balances Highlights 2024.xlsx', sheet_name='TimeSeries_1971-2023', header=1)
 
-bitcoin = pd.read_excel('Bitcoin_Energy.xlsx')
+bitcoin = pd.read_excel('Raw/Bitcoin_Energy.xlsx')
 
-etherium = pd.read_csv('Historical Ethereum network annualised electricity consumption (PoS).csv')
+etherium = pd.read_csv('Raw/Historical Ethereum network annualised electricity consumption (PoS).csv')
 
 # Transforming the datasets
 world = world[(world.Country == 'World') & (world.Product == 'Total') & (world.Flow == 'Total final consumption (PJ)')].iloc[:,6:world.shape[1]-1]
@@ -58,10 +58,10 @@ crypto_datacenter['Total Consumption'] = crypto_datacenter['Consumption_x'] +  c
 
 crypto_datacenter.drop(columns=['Consumption_x', 'Consumption_y'], inplace=True)
 
-crypto_datacenter.to_csv('Trusted/crypto_ai_energy.csv')
+crypto_datacenter.to_csv('Trusted/crypto_ai_energy.csv', index=False)
 
-world.to_csv('Trusted/world_energy.csv')
+world.to_csv('Trusted/world_energy.csv', index=False)
 
-total = pd.concat([world, {'Bitcoin':bitcoin[['Date and Time','annualised consumption MAX']]}, {'Etherium':etherium[['Date and Time','annualised consumption GUESS']]}, datacenter], axis=1)
+#total = pd.concat([world, {'Bitcoin':bitcoin[['Date and Time','annualised consumption MAX']]}, {'Etherium':etherium[['Date and Time','annualised consumption GUESS']]}, datacenter], axis=1)
 
-total.to_csv('Trusted/total_energy_consumption.csv')
+#total.to_csv('Trusted/total_energy_consumption.csv')
