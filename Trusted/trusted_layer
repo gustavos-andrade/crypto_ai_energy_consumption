@@ -42,6 +42,8 @@ crypto_year = crypto.groupby(crypto['Date and Time'].dt.year)[['annualised consu
 
 crypto_year.fillna(0, inplace=True)
 
+crypto_detailed = crypto_year.copy()
+
 crypto_year['Consumption'] = crypto_year['annualised consumption MAX'] + crypto_year['annualised consumption GUESS']
 
 crypto_year.drop(columns=['annualised consumption MAX','annualised consumption GUESS'], inplace=True)
@@ -62,6 +64,16 @@ crypto_datacenter.to_csv('Trusted/crypto_ai_energy.csv', index=False)
 
 world.to_csv('Trusted/world_energy.csv', index=False)
 
-#total = pd.concat([world, {'Bitcoin':bitcoin[['Date and Time','annualised consumption MAX']]}, {'Etherium':etherium[['Date and Time','annualised consumption GUESS']]}, datacenter], axis=1)
+crypto_detailed = crypto_detailed.rename(columns = {'Date and Time':'Year','annualised consumption MAX':'Bitcoin', 'annualised consumption GUESS':'Etherium'})
 
-#total.to_csv('Trusted/total_energy_consumption.csv')
+crypto_ai = pd.merge(crypto_detailed, datacenter, on='Year', how='left')
+
+crypto_ai = crypto_ai.rename(columns={'Consumption': 'AI'})
+
+total_by_source = pd.merge(world, crypto_ai, on='Year', how = 'outer')
+
+total_by_source.fillna(0, inplace=True)
+
+total_by_source = total_by_source.rename(columns={'Consumption':'World'})
+
+total_by_source.to_csv('Trusted/total_by_source.csv', index=False)
